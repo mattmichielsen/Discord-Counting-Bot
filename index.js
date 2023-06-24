@@ -1,41 +1,17 @@
-const Discord = require('discord.js');
-const client = new Discord.Client();
-const data = require('./data.json');
+const { Client, GatewayIntentBits } = require('discord.js');
+const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, ] });
+require("dotenv").config();
 
 client.on('ready', () => {
     console.log('Bot is Ready');
 });
 
-const countingChannel = client.channels.resolve(data.countingChannel);
-
-setInterval(async () => {
-    await countingChannel.messages.fetch({ limit: 1 }).then(e => {
-	let lastMsg = e.first();
-
-	if (!lastMsg.author.bot && parseInt(lastMsg.content) + 1 !== parseInt(countingChannel.topic.replace('Next count is ', ''))) {
-	    countingChannel.setTopic('Next count is ' + (parseInt(lastMsg.content) + 1) + '\nMaybe not sync because Rate-Limited');
-	}
-     });
-}, 1000);
-
-let lastMsgAuthor;
-
-client.on('message', async message => {
-	if (message.channel.id === data.countingChannel) {
-	  if (message.author.bot) return;
-		let next_count = parseInt(countingChannel.topic.replace('Next count is ', ''));
-
-		if (parseInt(message.content) !== next_count) {
-			message.delete();
-		} else if(lastMsgAuthor && message.author.id === lastMsgAuthor) {
-			message.delete();
-		} else {
-		        countingChannel.setTopic('Next count is ' + (next_count + 1) + '\nMaybe not sync because Rate-Limited');
-
-		        lastMsgAuthor = message.author.id;
-	        }
-
+client.on('messageCreate', async message => {
+	if (message.channel.id === process.env.CHANNEL_ID) {
+	  if (message.author.bot || isNaN(message.content)) return;
+	  let next_count = parseInt(message.content);
+      message.channel.send((next_count + 1).toString());
 	}
 });
 
-client.login(data.token);
+client.login(process.env.DISCORD_TOKEN);
